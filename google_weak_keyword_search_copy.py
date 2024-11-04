@@ -26,11 +26,17 @@ Googleの検索エンジンでキーワードを検索
 指定されたドメインが検索結果の１ページ目に含まれていないキーワードをテキストファイルに出力
 """
 
-# '検索キーワードリスト.txt'ファイルを読み込み、リストにする
-# １行ずつ読み込んで改行コードを削除してリストにする
+# 'search_keyword_list.txt'ファイルを読み込み、リストにする
+with open("search_keyword_list.txt") as f:
+    keywords = [
+        keyword.rstrip() for keyword in f.readlines()
+    ]  # １行ずつ読み込んで改行コードを削除してリストにする
 
 # 'ドメインリスト.txt'ファイルを読み込み、リストにする
-# １行ずつ読み込んで改行コードを削除してリストにする
+with open("domain_list.txt") as f:
+    domains = [
+        domain.rstrip() for domain in f.readlines()
+    ]  # １行ずつ読み込んで改行コードを削除してリストにする
 
 # seleniumで自動操作するブラウザはGoogleChrome
 # Optionsオブジェクトを作成
@@ -49,7 +55,7 @@ driver = webdriver.Chrome(service=service, options=options)
 # Googleのトップページを開く
 driver.get(URL)
 # 2秒待機（読み込みのため）
-time.sleep(2)
+time.sleep(1)
 
 # 検索キーワードを１つずつ取り出す
 # search関数実行
@@ -75,18 +81,28 @@ input_element.send_keys("転職")
 # Enterキーを送信
 input_element.send_keys(Keys.RETURN)
 # 2秒待機
-time.sleep(2)
+time.sleep(1)
 
 """
 検索結果ページの1位から10位までのURLを取得
 """
 
 # 各ページのURLを入れるためのリストを指定
+urls = []
 # a要素（各ページの1位から10位までのURL）取得
-# objects = driver.find_elements_by_css_selector('.rc > .r > a')
+objects = driver.find_elements(
+    By.CSS_SELECTOR, "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a"
+)
 
-# 各ページのURLをリストに追加
-# 各ページのURLが取得できなかった場合は警告を出す
+if objects:
+    for object in objects:
+        temp_url = object.get_attribute("href")
+        urls.append(temp_url)  # 各ページのURLをリストに追加
+else:
+    print(
+        "URLを取得できませんでした。"
+    )  # 各ページのURLが取得できなかった場合は警告を出す
+
 # 各ページのURLを戻り値に指定
 
 """
