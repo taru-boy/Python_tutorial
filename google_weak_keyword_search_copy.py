@@ -28,34 +28,26 @@ Googleの検索エンジンでキーワードを検索
 
 # 'search_keyword_list.txt'ファイルを読み込み、リストにする
 with open("search_keyword_list.txt") as f:
-    keywords = [
-        keyword.rstrip() for keyword in f.readlines()
-    ]  # １行ずつ読み込んで改行コードを削除してリストにする
+    # １行ずつ読み込んで改行コードを削除してリストにする
+    keywords = [keyword.rstrip() for keyword in f.readlines()]
 
 # 'ドメインリスト.txt'ファイルを読み込み、リストにする
 with open("domain_list.txt") as f:
-    domains = [
-        domain.rstrip() for domain in f.readlines()
-    ]  # １行ずつ読み込んで改行コードを削除してリストにする
+    # １行ずつ読み込んで改行コードを削除してリストにする
+    domains = [domain.rstrip() for domain in f.readlines()]
 
 # seleniumで自動操作するブラウザはGoogleChrome
-# Optionsオブジェクトを作成
-options = Options()
+options = Options()  # Optionsオブジェクトを作成
 
 # ヘッドレスモードを有効にする
-# options.add_argument('--headless')
+options.add_argument("--headless")
 
 # ChromeのWebDriverオブジェクトを作成
-
-# 'chromedriver' executable needs to be in PATH. のエラーが出た場合は下記の書き方に変更します。
-# driver = webdriver.Chrome(options=options, executable_path=r"chromedriverのpathを書く")
 service = Service("/usr/bin/chromedriver")
 driver = webdriver.Chrome(service=service, options=options)
 
-# Googleのトップページを開く
-driver.get(URL)
-# 2秒待機（読み込みのため）
-time.sleep(1)
+driver.get(URL)  # Googleのトップページを開く
+time.sleep(1)  # 2秒待機（読み込みのため）
 
 # 検索キーワードを１つずつ取り出す
 # search関数実行
@@ -109,15 +101,21 @@ else:
 URLリストからドメインを取得し、指定ドメインに含まれているかチェック
 """
 # URLリストから各ページのURLを１つずつ取り出す
-
-# '//〇〇/'に一致する箇所（ドメイン）を抜き出す
-# '//〇〇/'の'〇〇'に一致する箇所を抜き出し、domainに代入
-# ドメインに'www.'が含まれているかチェック
-# 含まれているなら'www.'を除去
-# 各ページのドメインが指定ドメインに含まれているかチェック
-# 含まれているなら警告を出す
-# １つでも含まれているなら他はチェックする必要がないので関数を終了
-# 指定ドメインに含まれていないならキーワードをok_keywordlistに追加
+for url in urls:
+    m = re.search(r"//(.*?)/", url)  # '//〇〇/'に一致する箇所（ドメイン）を抜き出す
+    domain = m.group(1)  # '//〇〇/'の'〇〇'に一致する箇所を抜き出し、domainに代入
+    if r"www." in domain:  # ドメインに'www.'が含まれているかチェック
+        domain = domain[4:]  # 含まれているなら'www.'を除去
+    if domain in domains:  # 各ページのドメインが指定ドメインに含まれているかチェック
+        # 含まれているなら警告を出す
+        print(
+            f"キーワード「{'転職'}」の検索結果には大手ドメインが含まれていたので除外します。"
+        )
+        break  # １つでも含まれているなら他はチェックする必要がないので関数を終了
+    else:
+        ok_keyword_list = []
+        # 指定ドメインに含まれていないならキーワードをok_keywordlistに追加
+        ok_keyword_list.append("転職")
 # ドメインチェック済みのキーワードを戻り値に指定
 
 # main関数を実行
