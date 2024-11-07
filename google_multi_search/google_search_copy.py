@@ -1,82 +1,115 @@
 # ブラウザを自動操作するためseleniumをimport
+from selenium import webdriver
 
 # seleniumでヘッドレスモードを指定するためにimport
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
 
 # seleniumでEnterキーを送信する際に使用するのでimport
+from selenium.webdriver.common.keys import Keys
 
 # HTTPリクエストを送る為にrequestsをimport
+import requests
 
 # HTMLから必要な情報を得る為にBeautifulSoupをimport
+from bs4 import BeautifulSoup
 
 # グーグルスプレッドシートを操作する為にimport
+import gspread
 
 # グーグルスプレッドシートの認証情報設定の為にimport
+from oauth2client.service_account import ServiceAccountCredentials
+import time
+
 
 
 # グーグルのURL
-
+URL = "https://google.co.jp"
 # グーグルのURLタイトルの確認のため
-
+URL_TITLE = "Google"
 
 # 2つのAPIを記述しないとリフレッシュトークンを3600秒毎に発行し続けなければならない
+scope = ["https://spreadsheets.google.com.feeds", "https://googleapis.com/auth/drive"]
 
 # 認証情報設定
 # ダウンロードしたjsonファイル名をクレデンシャル変数に設定（秘密鍵、Pythonファイルから読み込みしやすい位置に置く）
-
+credentials = ServiceAccountCredentials.from_json_keyfile_name(
+    "google_multi_search/starlit-water-441012-p8-cfc85334a56d.json"
+)
 
 # 共有設定したスプレッドシートキーを格納
+SPREADSHEET_KEY = "1oTalR4C7N9V7lhsZhaktbda8fkz4hbzJkaKbam3ykpQ"
+
+def main():
+    """
+    メインの処理
+    Googleでキーワードを検索
+    １ページ目の情報を取得し、Googleスプレッドシートに出力
+    """
+
+    # 検索キーワードが入力されたテキストファイルを読み込む
+    with open("google_multi_search/keyword.txt") as f:
+        keywords = [s.rstrip() for s in f.readlines()]
+
+    # Options()オブジェクトの生成
+    options = Options()
+    # options.add_argument('--headless') # ヘッドレスモードを有効にする
+
+    # ChromeのWebDriverオブジェクトを作成
+    # executable need to be in pathというエラーが出た場合
+    # chromedriverをpythonファイルと同じフォルダに置き、記述を下記のように変更
+    # driver = webdriver.Chrome(options=options, executable_path="chromedriverのpathを書く")
+    service = ChromeService("/usr/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=options)
+    # Googleのトップページを開く
+    driver.get(URL)
+    # 2秒待機
+    time.sleep(2)
+
+    # Google検索処理
+    for keyword in keywords:
+        print(f"検索キーワード：{keyword}")
+        search(driver=driver, keyword=keyword)
+    # 情報取得処理
+
+    # Googleスプレッドシート出力処理
 
 
-'''
-メインの処理
-Googleでキーワードを検索
-１ページ目の情報を取得し、Googleスプレッドシートに出力
-'''
-
-# 検索キーワードが入力されたテキストファイルを読み込む
+    # ブラウザーを閉じる
 
 
-# Options()オブジェクトの生成
+def search(driver: webdriver.Chrome, keyword: str):
+    """
+    検索テキストボックスに検索キーワードを入力し、検索する。
 
-# options.add_argument('--headless') # ヘッドレスモードを有効にする
+    Parameters
+    ----------
+    driver : webdriver.Chrome
+        Google ChromeのWebDriverインスタンス。
+    keyword : str
+        検索ボックスに入力するキーワード。
 
-# ChromeのWebDriverオブジェクトを作成
+    Returns
+    -------
+    None
+    """
 
-# executable need to be in pathというエラーが出た場合
-# chromedriverをpythonファイルと同じフォルダに置き、記述を下記のように変更
-# driver = webdriver.Chrome(options=options, executable_path="chromedriverのpathを書く")
-
-# Googleのトップページを開く
-
-# 2秒待機
-
-
-# Google検索処理
-
-# 情報取得処理
-
-# Googleスプレッドシート出力処理
+    # 検索テキストボックスの要素をname属性から取得
+    input_element = driver.find_element(By.NAME, "q")
+    # 検索テキストボックスに入力されている文字列を消去
+    input_element.clear()
+    # 検索テキストボックスにキーワードを入力
+    input_element.send_keys(keyword)
+    # Enterキーを送信
+    input_element.send_keys(Keys.RETURN)
+    # 2秒待機
+    time.sleep(1)
 
 
-# ブラウザーを閉じる
-
-'''
-検索テキストボックスに検索キーワードを入力し、検索する
-'''
-
-# 検索テキストボックスの要素をname属性から取得
-
-# 検索テキストボックスに入力されている文字列を消去
-
-# 検索テキストボックスにキーワードを入力
-
-# Enterキーを送信
-
-# 2秒待機
-
-'''
+"""
 タイトル、URL、説明文、H1からH5までの情報を取得
-'''
+"""
 
 # 辞書を使って複数のアイテムを整理 -> 引数が減る＋返り値が減る
 
@@ -120,10 +153,9 @@ Googleでキーワードを検索
 # h5
 
 
-
-'''
+"""
 Googleスプレッドシートに情報を出力
-'''
+"""
 
 # 制限
 # ①ユーザーごとに100秒あたり100件のリクエスト
@@ -193,3 +225,6 @@ Googleスプレッドシートに情報を出力
 # 100秒待機
 
 # スプレッドシートに既にデータが存在している場合
+
+if __name__ == "__main__":
+    main()
