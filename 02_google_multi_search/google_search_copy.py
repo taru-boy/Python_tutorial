@@ -23,7 +23,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import time
 
 
-
 # グーグルのURL
 URL = "https://google.co.jp"
 # グーグルのURLタイトルの確認のため
@@ -35,11 +34,12 @@ scope = ["https://spreadsheets.google.com.feeds", "https://googleapis.com/auth/d
 # 認証情報設定
 # ダウンロードしたjsonファイル名をクレデンシャル変数に設定（秘密鍵、Pythonファイルから読み込みしやすい位置に置く）
 credentials = ServiceAccountCredentials.from_json_keyfile_name(
-    "google_multi_search/starlit-water-441012-p8-cfc85334a56d.json"
+    "02_google_multi_search/starlit-water-441012-p8-cfc85334a56d.json"
 )
 
 # 共有設定したスプレッドシートキーを格納
 SPREADSHEET_KEY = "1oTalR4C7N9V7lhsZhaktbda8fkz4hbzJkaKbam3ykpQ"
+
 
 def main():
     """
@@ -49,7 +49,7 @@ def main():
     """
 
     # 検索キーワードが入力されたテキストファイルを読み込む
-    with open("google_multi_search/keyword.txt") as f:
+    with open("02_google_multi_search/keyword.txt") as f:
         keywords = [s.rstrip() for s in f.readlines()]
 
     # Options()オブジェクトの生成
@@ -71,10 +71,12 @@ def main():
     for keyword in keywords:
         print(f"検索キーワード：{keyword}")
         search(driver=driver, keyword=keyword)
+        get_items(driver=driver, keyword=keyword)
+
+        time.sleep(1200)
     # 情報取得処理
 
     # Googleスプレッドシート出力処理
-
 
     # ブラウザーを閉じる
 
@@ -107,50 +109,81 @@ def search(driver: webdriver.Chrome, keyword: str):
     time.sleep(1)
 
 
-"""
-タイトル、URL、説明文、H1からH5までの情報を取得
-"""
+def get_items(driver: webdriver.Chrome, keyword: str):
+    """
+    タイトル、URL、説明文、H1からH5までの情報を取得
+    """
 
-# 辞書を使って複数のアイテムを整理 -> 引数が減る＋返り値が減る
+    # 辞書を使って複数のアイテムを整理 -> 引数が減る＋返り値が減る
+    items = {
+        "keyword": str(keyword),
+        "title": ["title"],
+        "url": [],
+        "description": ["説明文"],
+        "h1": [],
+        "h2": [],
+        "h3": [],
+        "h4": [],
+        "h5": [],
+    }
+    # seleniumによる検索結果のurlの取得
+    urls = driver.find_elements(
+        By.CSS_SELECTOR, "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a"
+    )
+    if urls:
+        for url in urls:
+            items["url"].append(url.get_attribute("href").strip())
 
-# seleniumによる検索結果のurlの取得
+    # seleniumによるtitleの取得
+    titles = driver.find_elements(
+        By.CSS_SELECTOR, "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a > h3"
+    )
+    if titles:
+        for title in titles:
+            items["title"].append(title.text.strip())
 
-# seleniumによるtitleの取得
+    # seleniumによるdescription（説明文）の取得
+    descriptions = driver.find_elements(
+        By.CSS_SELECTOR,
+        "div.kb0PBd.A9Y9g > div.VwiC3b.yXK7lf.p4wth.r025kc.hJNv6b.Hdw6tb > span",
+    )
 
-# seleniumによるdescription（説明文）の取得
-
-# h1?h5見出しの取得
-
-# URLにGETリクエストを送る
-
-# GETリクエスト
-
-# HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
-
-# 1秒待機
-
-# SSlエラーが起こった時の処理を記入
-
-# 1秒待機
-
-# h1
-# h1タグを全てリストとして取得
-
-# h1タグからテキストを取得してリストに入れる
-
-# h2
-# h2タグを全てリストとして取得
-
-# h2タグからテキストを取得してリストに入れる
+    if descriptions:
+        for description in descriptions:
+            items["description"].append(description.text.strip())
 
 
-# h3
+    # h1?h5見出しの取得
 
+    # URLにGETリクエストを送る
 
-# h4
+    # GETリクエスト
 
+    # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
 
-# h5
+    # 1秒待機
+
+    # SSlエラーが起こった時の処理を記入
+
+    # 1秒待機
+
+    # h1
+    # h1タグを全てリストとして取得
+
+    # h1タグからテキストを取得してリストに入れる
+
+    # h2
+    # h2タグを全てリストとして取得
+
+    # h2タグからテキストを取得してリストに入れる
+
+    # h3
+
+    # h4
+
+    # h5
+
+    return items
 
 
 """
