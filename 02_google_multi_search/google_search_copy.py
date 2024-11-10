@@ -153,7 +153,6 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict[str]:
         By.CSS_SELECTOR,
         "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a",
     )
-    # urls.extend(driver.find_elements(By.CSS_SELECTOR, "div.yuRUbf > div > span > a"))
     if urls:
         for url in urls:
             items["url"].append(str(url.get_attribute("href")).strip())
@@ -162,9 +161,6 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict[str]:
     titles = driver.find_elements(
         By.CSS_SELECTOR, "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a > h3"
     )
-    # titles.extend(
-    #    driver.find_elements(By.CSS_SELECTOR, "div.yuRUbf > div > span > a > h3")
-    # )
     if titles:
         for title in titles:
             items["title"].append(title.text.strip())
