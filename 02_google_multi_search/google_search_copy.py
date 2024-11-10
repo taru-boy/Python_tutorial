@@ -71,7 +71,11 @@ def main():
     for keyword in keywords:
         print(f"検索キーワード：{keyword}")
         search(driver=driver, keyword=keyword)
-        get_items(driver=driver, keyword=keyword)
+        items = get_info(driver=driver, keyword=keyword)
+
+        for key in items:
+            print(key)
+            print(items[key])
 
         time.sleep(1200)
     # 情報取得処理
@@ -109,7 +113,7 @@ def search(driver: webdriver.Chrome, keyword: str):
     time.sleep(1)
 
 
-def get_items(driver: webdriver.Chrome, keyword: str):
+def get_info(driver: webdriver.Chrome, keyword: str):
     """
     タイトル、URL、説明文、H1からH5までの情報を取得
     """
@@ -128,11 +132,14 @@ def get_items(driver: webdriver.Chrome, keyword: str):
     }
     # seleniumによる検索結果のurlの取得
     urls = driver.find_elements(
-        By.CSS_SELECTOR, "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a"
+        By.CSS_SELECTOR,
+        "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a",
+        ##rso > div.hlcw0c > div > div > div > div > div > div > div > div.yuRUbf > div > span > a
+        # rso > div:nth-child(3) > div:nth-child(2) > div > div > div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a
     )
     if urls:
         for url in urls:
-            items["url"].append(url.get_attribute("href").strip())
+            items["url"].append(str(url.get_attribute("href")).strip())
 
     # seleniumによるtitleの取得
     titles = driver.find_elements(
@@ -150,38 +157,36 @@ def get_items(driver: webdriver.Chrome, keyword: str):
 
     if descriptions:
         for description in descriptions:
-            items["description"].append(description.text.strip())
-
+            if "LEwnzc" not in description.get_attribute("class"):  # 日付タグを除外
+                items["description"].append(description.text.strip())
 
     # h1?h5見出しの取得
+    for url in items["url"]:
+        try:
+            # URLにGETリクエストを送る
+            response = requests.get(url=url)  # GETリクエスト
+            soup = BeautifulSoup(
+                response.text, "html.parser"
+            )  # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
+            time.sleep(1)  # 1秒待機
 
-    # URLにGETリクエストを送る
+        except requests.exceptions.SSLError:  # SSlエラーが起こった時の処理を記入
+            response = requests.get(url=url, verify=False)
+            soup = BeautifulSoup(
+                response.text, "html.parser"
+            )  # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
+            time.sleep(1)  # 1秒待機
 
-    # GETリクエスト
-
-    # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
-
-    # 1秒待機
-
-    # SSlエラーが起こった時の処理を記入
-
-    # 1秒待機
-
-    # h1
-    # h1タグを全てリストとして取得
-
-    # h1タグからテキストを取得してリストに入れる
-
-    # h2
-    # h2タグを全てリストとして取得
-
-    # h2タグからテキストを取得してリストに入れる
-
-    # h3
-
-    # h4
-
-    # h5
+        heading_tags = ["h1", "h2", "h3", "h4", "h5"]
+        for tag in heading_tags:
+            # 指定された見出しタグの中身をheading_elemensとして取得
+            heading_elements = soup.find_all(tag)
+            heading_texts = []
+            for element in heading_elements:
+                if element.get_text().strip():
+                    # heading_elementsからテキストを取得してheading_textsに追加
+                    heading_texts.append(element.get_text().strip())
+            items[tag].append(heading_texts)
 
     return items
 
