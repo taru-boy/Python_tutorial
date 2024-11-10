@@ -134,8 +134,6 @@ def get_info(driver: webdriver.Chrome, keyword: str):
     urls = driver.find_elements(
         By.CSS_SELECTOR,
         "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a",
-        ##rso > div.hlcw0c > div > div > div > div > div > div > div > div.yuRUbf > div > span > a
-        # rso > div:nth-child(3) > div:nth-child(2) > div > div > div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a
     )
     if urls:
         for url in urls:
@@ -165,17 +163,14 @@ def get_info(driver: webdriver.Chrome, keyword: str):
         try:
             # URLにGETリクエストを送る
             response = requests.get(url=url)  # GETリクエスト
-            soup = BeautifulSoup(
-                response.text, "html.parser"
-            )  # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
-            time.sleep(1)  # 1秒待機
 
         except requests.exceptions.SSLError:  # SSlエラーが起こった時の処理を記入
             response = requests.get(url=url, verify=False)
-            soup = BeautifulSoup(
-                response.text, "html.parser"
-            )  # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
-            time.sleep(1)  # 1秒待機
+
+        soup = BeautifulSoup(
+            response.text, "html.parser"
+        )  # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
+        time.sleep(1)  # 1秒待機
 
         heading_tags = ["h1", "h2", "h3", "h4", "h5"]
         for tag in heading_tags:
