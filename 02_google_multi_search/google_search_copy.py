@@ -73,9 +73,11 @@ def main():
         search(driver=driver, keyword=keyword)
         items = get_info(driver=driver, keyword=keyword)
 
-        for key in items:
-            print(key)
-            print(items[key])
+        print(len(items["url"]))
+        print(len(items["title"]))
+        print(len(items["description"]))
+        print(len(items["h1"]))
+        output_result(items=items)
 
         time.sleep(1200)
     # 情報取得処理
@@ -113,7 +115,7 @@ def search(driver: webdriver.Chrome, keyword: str):
     time.sleep(1)
 
 
-def get_info(driver: webdriver.Chrome, keyword: str) -> dict:
+def get_info(driver: webdriver.Chrome, keyword: str) -> dict[str]:
     """
     タイトル、URL、説明文、H1からH5までの情報を取得
 
@@ -136,10 +138,10 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict:
     """
     # 辞書を使って複数のアイテムを整理 -> 引数が減る＋返り値が減る
     items = {
-        "keyword": str(keyword),
-        "title": ["title"],
+        "keyword": keyword,
+        "title": [],
         "url": [],
-        "description": ["説明文"],
+        "description": [],
         "h1": [],
         "h2": [],
         "h3": [],
@@ -151,6 +153,7 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict:
         By.CSS_SELECTOR,
         "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a",
     )
+    # urls.extend(driver.find_elements(By.CSS_SELECTOR, "div.yuRUbf > div > span > a"))
     if urls:
         for url in urls:
             items["url"].append(str(url.get_attribute("href")).strip())
@@ -159,20 +162,22 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict:
     titles = driver.find_elements(
         By.CSS_SELECTOR, "div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a > h3"
     )
+    # titles.extend(
+    #    driver.find_elements(By.CSS_SELECTOR, "div.yuRUbf > div > span > a > h3")
+    # )
     if titles:
         for title in titles:
             items["title"].append(title.text.strip())
 
     # seleniumによるdescription（説明文）の取得
     descriptions = driver.find_elements(
-        By.CSS_SELECTOR,
-        "div.kb0PBd.A9Y9g > div.VwiC3b.yXK7lf.p4wth.r025kc.hJNv6b.Hdw6tb > span",
+        By.CLASS_NAME,
+        "VwiC3b",
     )
 
     if descriptions:
         for description in descriptions:
-            if "LEwnzc" not in description.get_attribute("class"):  # 日付タグを除外
-                items["description"].append(description.text.strip())
+            items["description"].append(description.text.strip())
 
     # h1?h5見出しの取得
     for url in items["url"]:
@@ -202,78 +207,105 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict:
     return items
 
 
-"""
-Googleスプレッドシートに情報を出力
-"""
+def output_result(items: dict):
+    """
+    Googleスプレッドシートに情報を出力
+    """
 
-# 制限
-# ①ユーザーごとに100秒あたり100件のリクエスト
-# ②1秒あたり10件まで
+    # GoogleスプレッドシートのAPI制限
+    # ①ユーザーごとに100秒あたり100件のリクエスト
+    # ②1秒あたり10件まで
 
-# OAuth2の資格情報を使用してGoogleAPIにログイン
+    # OAuth2の資格情報を使用してGoogleAPIにログイン
+    gc = gspread.authorize(credentials=credentials)
+    # シートが作成されているか確認するためのフラグ
+    flag = False
+    # 共有設定したスプレッドシートのシート1を開く
+    workbook = gc.open_by_key(SPREADSHEET_KEY)
 
-# シートが作成されているか確認するためのフラグ
+    # すでに同じ名前のシートがある場合は削除
+    if items["keyword"] in [sheet.title for sheet in workbook.worksheets()]:
+        sheet_to_delete = workbook.worksheet(items["keyword"])
+        workbook.del_worksheet(sheet_to_delete)
 
-# 共有設定したスプレッドシートのシート1を開く
+    # ワークシートを作成（タイトルがkeywordで、50行、50列）
+    worksheet = workbook.add_worksheet(title=items["keyword"], rows=50, cols=50)
+    # シートが作成されたらフラグを立てる
+    flag = True
 
-# ワークシートを作成（タイトルがkeywordで、50行、50列）
+    # スプレッドシート書き込み処理
+    worksheet.update_cell(1, 1, "検索キーワード")
+    # キーワードの書き込み
+    worksheet.update_cell(1, 2, items["keyword"])
+    # 1秒待機
+    time.sleep(1)
 
-# シートが作成されたらフラグを立てる
+    number_urls = len(items["url"])
 
-# スプレッドシート書き込み処理
+    # 順位の書き込み
+    worksheet.update_cell(2, 1, "rank")
+    column = 2
+    for rank in range(1, number_urls + 1):
+        worksheet.update_cell(2, column, rank)
+        column += 1
 
-# キーワードの書き込み
+    time.sleep(2)  # 3秒待機
 
-# 1秒待機
+    # 「タイトル」の書き込み
+    category_list = list(items.keys())[1:4]
+    row = 3
+    for category in category_list:
+        worksheet.update_cell(row, 1, category)
+        column = 2
+        for element in items[category]:
+            worksheet.update_cell(row, column, element)
+            column += 1
 
-# 順位の書き込み
+        time.sleep(2)  # 3秒待機
+        row += 1
 
-# 3秒待機
+    heading_tags = ["h1", "h2", "h3", "h4", "h5"]
+    # 「h1」の書き込み
+    row = 6
+    for tag in heading_tags:
+        worksheet.update_cell(row, 1, f"{tag}タグ")
+        column = 2
+        for heading_list in items[tag]:
+            if heading_list:
+                heading_text = "***".join(heading_list).strip()
+                worksheet.update_cell(row, column, heading_text)
+            else:
+                worksheet.update_cell(row, column, "なし")
+            column += 1
+            time.sleep(2)
+        row += 1
 
-# 「タイトル」の書き込み
+    # 3秒待機
 
-# 3秒待機
+    # 「h2」の書き込み
 
-# 「URL」の書き込み
+    # 3秒待機
 
-# 3秒待機
+    # 「h3」の書き込み
 
-# 「ディスクリプション」の書き込み
+    # 3秒待機
 
-# 3秒待機
+    # 「h4」の書き込み
 
-# 「h1」の書き込み
+    # 3秒待機
 
-# 3秒待機
+    # 「h5」の書き込み
 
+    # 3秒待機
 
-# 「h2」の書き込み
+    # エラー処理
 
-# 3秒待機
+    # グーグルスプレッドシートのAPIの制限に達した場合
 
+    # 100秒待機
 
-# 「h3」の書き込み
+    # スプレッドシートに既にデータが存在している場合
 
-# 3秒待機
-
-
-# 「h4」の書き込み
-
-# 3秒待機
-
-
-# 「h5」の書き込み
-
-# 3秒待機
-
-
-# エラー処理
-
-# グーグルスプレッドシートのAPIの制限に達した場合
-
-# 100秒待機
-
-# スプレッドシートに既にデータが存在している場合
 
 if __name__ == "__main__":
     main()
