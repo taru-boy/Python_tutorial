@@ -113,11 +113,27 @@ def search(driver: webdriver.Chrome, keyword: str):
     time.sleep(1)
 
 
-def get_info(driver: webdriver.Chrome, keyword: str):
+def get_info(driver: webdriver.Chrome, keyword: str) -> dict:
     """
     タイトル、URL、説明文、H1からH5までの情報を取得
-    """
 
+    Parameters
+    ----------
+    driver : webdriver.Chrome
+        Google ChromeのWebDriverインスタンス。
+    keyword : str
+        検索ボックスに入力するキーワード。
+
+    Returns
+    -------
+    items : dict
+        検索結果から取得した情報を格納した辞書。キーには以下の項目が含まれます:
+        - "keyword" : 検索に使用したキーワード
+        - "title" : 各ページのタイトルのリスト
+        - "url" : 各ページのURLのリスト
+        - "description" : 各ページの説明文のリスト
+        - "h1", "h2", "h3", "h4", "h5" : 各ページの見出しタグ（H1～H5）のリスト
+    """
     # 辞書を使って複数のアイテムを整理 -> 引数が減る＋返り値が減る
     items = {
         "keyword": str(keyword),
