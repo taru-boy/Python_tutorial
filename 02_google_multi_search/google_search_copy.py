@@ -71,20 +71,10 @@ def main():
     for keyword in keywords:
         print(f"検索キーワード：{keyword}")
         search(driver=driver, keyword=keyword)
-        items = get_info(driver=driver, keyword=keyword)
-
-        print(len(items["url"]))
-        print(len(items["title"]))
-        print(len(items["description"]))
-        print(len(items["h1"]))
-        output_result(items=items)
-
-        time.sleep(1200)
-    # 情報取得処理
-
-    # Googleスプレッドシート出力処理
-
+        items = get_info(driver=driver, keyword=keyword)  # 情報取得処理
+        output_result(items=items)  # Googleスプレッドシート出力処理
     # ブラウザーを閉じる
+    driver.quit()
 
 
 def search(driver: webdriver.Chrome, keyword: str):
@@ -185,7 +175,7 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict[str]:
             response = requests.get(url=url, verify=False)
 
         soup = BeautifulSoup(
-            response.text, "html.parser"
+            response.content, "html.parser"
         )  # HTMLから情報を取り出す為にBeautifulSoupオブジェクトを得る
         time.sleep(1)  # 1秒待機
 
@@ -206,6 +196,11 @@ def get_info(driver: webdriver.Chrome, keyword: str) -> dict[str]:
 def output_result(items: dict):
     """
     Googleスプレッドシートに情報を出力
+
+    Parameters
+    ----------
+    items : dict
+        検索結果から取得した情報を格納した辞書。
     """
 
     # GoogleスプレッドシートのAPI制限
@@ -224,83 +219,70 @@ def output_result(items: dict):
         sheet_to_delete = workbook.worksheet(items["keyword"])
         workbook.del_worksheet(sheet_to_delete)
 
-    # ワークシートを作成（タイトルがkeywordで、50行、50列）
-    worksheet = workbook.add_worksheet(title=items["keyword"], rows=50, cols=50)
-    # シートが作成されたらフラグを立てる
-    flag = True
+    try:
+        # ワークシートを作成（タイトルがkeywordで、50行、50列）
+        worksheet = workbook.add_worksheet(title=items["keyword"], rows=50, cols=50)
+        # シートが作成されたらフラグを立てる
+        flag = True
 
-    # スプレッドシート書き込み処理
-    worksheet.update_cell(1, 1, "検索キーワード")
-    # キーワードの書き込み
-    worksheet.update_cell(1, 2, items["keyword"])
-    # 1秒待機
-    time.sleep(1)
+        # スプレッドシート書き込み処理
+        worksheet.update_cell(1, 1, "検索キーワード")
+        # キーワードの書き込み
+        worksheet.update_cell(1, 2, items["keyword"])
+        # 1秒待機
+        time.sleep(1)
 
-    number_urls = len(items["url"])
+        number_urls = len(items["url"])
 
-    # 順位の書き込み
-    worksheet.update_cell(2, 1, "rank")
-    column = 2
-    for rank in range(1, number_urls + 1):
-        worksheet.update_cell(2, column, rank)
-        column += 1
-
-    time.sleep(2)  # 3秒待機
-
-    # 「タイトル」の書き込み
-    category_list = list(items.keys())[1:4]
-    row = 3
-    for category in category_list:
-        worksheet.update_cell(row, 1, category)
+        # 順位の書き込み
+        worksheet.update_cell(2, 1, "rank")
         column = 2
-        for element in items[category]:
-            worksheet.update_cell(row, column, element)
+        for rank in range(1, number_urls + 1):
+            worksheet.update_cell(2, column, rank)
             column += 1
 
         time.sleep(2)  # 3秒待機
-        row += 1
 
-    heading_tags = ["h1", "h2", "h3", "h4", "h5"]
-    # 「h1」の書き込み
-    row = 6
-    for tag in heading_tags:
-        worksheet.update_cell(row, 1, f"{tag}タグ")
-        column = 2
-        for heading_list in items[tag]:
-            if heading_list:
-                heading_text = "***".join(heading_list).strip()
-                worksheet.update_cell(row, column, heading_text)
-            else:
-                worksheet.update_cell(row, column, "なし")
-            column += 1
-            time.sleep(2)
-        row += 1
+        category_list = list(items.keys())[1:4]
+        row = 3
+        for category in category_list:
+            worksheet.update_cell(row, 1, category)
+            column = 2
+            for element in items[category]:
+                worksheet.update_cell(row, column, element)
+                column += 1
 
-    # 3秒待機
+            time.sleep(2)  # 3秒待機
+            row += 1
 
-    # 「h2」の書き込み
-
-    # 3秒待機
-
-    # 「h3」の書き込み
-
-    # 3秒待機
-
-    # 「h4」の書き込み
-
-    # 3秒待機
-
-    # 「h5」の書き込み
-
-    # 3秒待機
+        heading_tags = ["h1", "h2", "h3", "h4", "h5"]
+        row = 6
+        for tag in heading_tags:
+            worksheet.update_cell(row, 1, f"{tag}タグ")
+            column = 2
+            for heading_list in items[tag]:
+                if heading_list:
+                    heading_text = "***".join(heading_list).strip()
+                    worksheet.update_cell(row, column, heading_text)
+                else:
+                    worksheet.update_cell(row, column, "なし")
+                column += 1
+                time.sleep(2)
+            row += 1
 
     # エラー処理
-
-    # グーグルスプレッドシートのAPIの制限に達した場合
-
-    # 100秒待機
-
-    # スプレッドシートに既にデータが存在している場合
+    except Exception as e:
+        print(f"エラー内容：{e}")
+        # グーグルスプレッドシートのAPIの制限に達した場合
+        if "429" in str(e):
+            if flag:
+                workbook.del_worksheet(worksheet)
+                print("API書き込み制限に引っかかりました。100秒間待機します。")
+                time.sleep(100)  # 100秒待機
+                print("next keyword")
+        # スプレッドシートに既にデータが存在している場合
+        if "400" in str(e):
+            print("既に同じ名前のシートが存在します。")
 
 
 if __name__ == "__main__":
