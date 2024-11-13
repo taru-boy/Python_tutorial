@@ -35,7 +35,7 @@ def main():
     # scheme（https）と netloc（hashikake.com）を結合してベースURLを作成
     base_url = f"{scheme}://{base_domain}/"
 
-    # 　内部リンクの取得
+    # 内部リンクの取得
 
     # 内部リンクが存在するなら
 
@@ -59,20 +59,20 @@ def main():
 
     # 正規表現の中で変数を使う時はf文字列またはformatを使う
     # /で始まって//を含まないURLと、https://ドメインから始まるもの、//ドメインから始まるもの
-
-    # URLにGETリクエストを送る
-
-    # BeautifulSoupによるsoupの作成
-
-    # URLがパターンに一致するaタグを取得
-
+    pattern = rf"^({base_url}.*)|^(/[^/].*?)|^(//{base_domain}.*)"
     # re.compileによる正規表現パターンの生成
-
-    # aタグの中からURLを取得
-
-    # セットの中にリンクが入っていないことを確認
-
-    # セットの中に内部リンクとして追加
+    # URLにGETリクエストを送る
+    response = requests.get(anl_url)
+    # BeautifulSoupによるsoupの作成
+    soup = BeautifulSoup(response.content, "html.parser")
+    # URLがパターンに一致するaタグを取得
+    for link in soup.find_all("a", href=re.compile(pattern)):
+        # aタグの中からURLを取得
+        link.get("href")
+        # セットの中にリンクが入っていないことを確認
+        if link.get("href") not in pages:
+            # セットの中に内部リンクとして追加
+            pages.add(link.get("href"))
 
     """
     調査URLを中心としたネットワーク図の作成
