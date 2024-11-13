@@ -79,27 +79,27 @@ def main():
     """
 
     # セットをリストにする
-
+    pages = list(pages)
     # indexの0に文字列"start_url"を追加
-
-    # 　空のグラフの作成　有向グラフ
-
+    pages.insert(0, "start_url")
+    # 空のグラフの作成　有向グラフ
+    G = nx.DiGraph()
     # リストの最初の要素を中心として放射状に頂点と辺の追加
-
+    nx.add_star(G, pages)
     # レイアウトを決める スプリングレイアウト
-
+    pos = nx.spring_layout(G, k=0.3)
     # ノードの様式の決定
 
     # ラベル文字の様式の決定
 
     # エッジの様式の決定
 
-    # nx.draw_networkx(G, pos)
+    nx.draw_networkx(G, pos)
 
     # matplotlibの座標軸の非表示
-
+    plt.axis("off")
     # matplotlibによる図の描画
-
+    plt.show()
     """
     URLのhttp://を省略してネットワーク図を見やすくするための調整
     privacyページやcontactページなどの無駄な内部リンクページの除去
