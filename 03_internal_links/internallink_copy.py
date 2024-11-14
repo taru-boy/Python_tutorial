@@ -89,29 +89,33 @@ def main():
     # レイアウトを決める スプリングレイアウト
     pos = nx.spring_layout(G, k=0.3)
     # ノードの様式の決定
-
+    nx.draw_networkx_nodes(G, pos, node_size=300, node_color="c", alpha=0.6)
     # ラベル文字の様式の決定
-
+    nx.draw_networkx_labels(G, pos, font_size=10, font_family="DejaVu Sans")
     # エッジの様式の決定
-
-    nx.draw_networkx(G, pos)
+    nx.draw_networkx_edges(G, pos, alpha=0.4, edge_color="c")
 
     # matplotlibの座標軸の非表示
     plt.axis("off")
     # matplotlibによる図の描画
     plt.show()
+
     """
     URLのhttp://を省略してネットワーク図を見やすくするための調整
     privacyページやcontactページなどの無駄な内部リンクページの除去
     """
-
+    short_links = []
     # 内部リンクのURLから効果の薄い内部リンクをre.sub()で消していく base_url https://hashikake.com //hashikake.com
-
-    # short_links（空のリスト）に追加
-
-    # short_linksをセットに変更(重複の削除)
-
-    # ""を削除　# discardだとキーがなくてもエラーにはならない。removeだとエラーになる
+    for url in pages:
+        rel_path = re.sub(
+            rf"^{base_url}|^//{base_domain}|.*tag.*|.*feed.*|.*about.*", "", url
+        )
+        # short_links（空のリスト）に追加
+        short_links.append(rel_path)
+        # short_linksをセットに変更(重複の削除)
+        s_links = set(short_links)
+        # ""を削除　# discardだとキーがなくてもエラーにはならない。removeだとエラーになる
+    print(s_links)
 
 
 if __name__ == "__main__":
