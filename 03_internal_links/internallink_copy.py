@@ -25,7 +25,7 @@ def main():
     メインの実行部分:調べたいURLはanl_urlに入力する
     """
 
-    pages = set()  # 空のセットを用意
+    internal_links = set()  # 空のセットを用意
     anl_url = "https://hashikake.com/RegEx"  # 内部リンクを調べたいURL
 
     parsed_url = urlparse(anl_url)
@@ -36,25 +36,54 @@ def main():
     base_url = f"{scheme}://{base_domain}/"
 
     # 内部リンクの取得
+    internal_links = get_links(
+        anl_url=anl_url,
+        internal_links=internal_links,
+        base_url=base_url,
+        base_domain=base_domain,
+    )
 
-    # 内部リンクが存在するなら
+    if internal_links:  # 内部リンクが存在するなら
+        print(f"全内部リンク数：{len(internal_links)}個")  # 内部リンクの数を表示
+        print(internal_links)  # 内部リンクの表示
+        # 関数内で使われるshort_linksを定義
+        short_links = shape_url(
+            internal_links=internal_links, base_url=base_url, base_domain=base_domain
+        )  # 内部リンクとして価値の薄いものの除外
+        print(
+            f"高価値内部リンク数：{len(short_links)}個"
+        )  # 内部リンクとして価値が高いものの数を表示
+        show_network(links=short_links)
+    else:
+        print("内部リンクはありませんでした。")
+        sys.exit()  # 内部リンクが存在しない場合はプログラムの終了
 
-    # 内部リンクの数を表示
 
-    # 内部リンクの表示
-
-    # 関数内で使われるshort_linksを定義
-
-    # 内部リンクとして価値の薄いものの除外
-
-    # 内部リンクとして価値が高いものの数を表示
-
-    # 内部リンクが存在しない場合はプログラムの終了
-
+def get_links(
+    anl_url: str,
+    internal_links: set,
+    base_url: str,
+    base_domain: str,
+) -> set:
     """
     /で始まるものと、base_urlから始まるもの//ドメインから始まるもの
-    全ての内部リンクを取得して、重複を除去してpagesに収集する＋
-    内部リンク数を出力
+    全ての内部リンクを取得して、重複を除去してpagesに収集する+内部リンク数を出力
+
+    Parameters
+    ----------
+    anl_url : str
+        調べたいURL
+    internal_links : set
+        内部リンクの集合
+    base_url : str
+        ベースのURL
+    base_domain : str
+        ベースのドメイン
+
+    Returns
+    -------
+    set
+        調べたいURL内のリンクが追加された集合
     """
 
     # 正規表現の中で変数を使う時はf文字列またはformatを使う
@@ -70,22 +99,30 @@ def main():
         # aタグの中からURLを取得
         link.get("href")
         # セットの中にリンクが入っていないことを確認
-        if link.get("href") not in pages:
+        if link.get("href") not in internal_links:
             # セットの中に内部リンクとして追加
-            pages.add(link.get("href"))
+            internal_links.add(link.get("href"))
+    return internal_links
 
+
+def show_network(links: set) -> None:
     """
     調査URLを中心としたネットワーク図の作成
+
+    Parameters
+    ----------
+    links : set
+        内部リンクの集合
     """
 
     # セットをリストにする
-    pages = list(pages)
+    links = list(links)
     # indexの0に文字列"start_url"を追加
-    pages.insert(0, "start_url")
+    links.insert(0, "start_url")
     # 空のグラフの作成　有向グラフ
     G = nx.DiGraph()
     # リストの最初の要素を中心として放射状に頂点と辺の追加
-    nx.add_star(G, pages)
+    nx.add_star(G, links)
     # レイアウトを決める スプリングレイアウト
     pos = nx.spring_layout(G, k=0.3)
     # ノードの様式の決定
@@ -100,22 +137,39 @@ def main():
     # matplotlibによる図の描画
     plt.show()
 
+
+def shape_url(internal_links: set, base_url: str, base_domain: str) -> set:
     """
     URLのhttp://を省略してネットワーク図を見やすくするための調整
     privacyページやcontactページなどの無駄な内部リンクページの除去
+
+    Parameters
+    ----------
+    internal_links : set
+        内部リンクの集合
+    base_url : str
+        ベースのURL
+    base_domain : str
+        ベースのドメイン
+
+    Returns
+    -------
+    set
+        整形されたURLの集合
     """
-    short_links = []
+    temp_links = []
     # 内部リンクのURLから効果の薄い内部リンクをre.sub()で消していく base_url https://hashikake.com //hashikake.com
-    for url in pages:
+    for url in internal_links:
         rel_path = re.sub(
             rf"^{base_url}|^//{base_domain}|.*tag.*|.*feed.*|.*about.*", "", url
         )
         # short_links（空のリスト）に追加
-        short_links.append(rel_path)
+        temp_links.append(rel_path)
         # short_linksをセットに変更(重複の削除)
-        s_links = set(short_links)
+        short_links = set(temp_links)
         # ""を削除　# discardだとキーがなくてもエラーにはならない。removeだとエラーになる
-    print(s_links)
+        short_links.discard("")
+    return short_links
 
 
 if __name__ == "__main__":
